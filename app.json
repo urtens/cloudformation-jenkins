@@ -16,8 +16,18 @@
       "Type" : "String",
       "Default": "ocs"
     },
+    "DnsPrefix" : {
+      "Description" : "(Optional) Prefix for the registry's DNS record (<prefix>.<zone>)",
+      "Type": "String",
+      "Default": ""
+    },
+    "DnsZone" : {
+      "Description" : "(Optional) Route53-hosted zone to use for the registry's DNS record (<prefix>.<zone>)",
+      "Type": "String",
+      "Default": ""
+    },
     "DockerImage" : {
-      "Description" : "Path of the Kibana Docker image (format: '[<registry>[:<port>]/]<repository>:<version>')",
+      "Description" : "Path of the Jenkins Docker image (format: '[<registry>[:<port>]/]<repository>:<version>')",
       "Type" : "String",
       "Default" : "aespinosa/jenkins"
     },
@@ -41,16 +51,31 @@
       "Type" : "String",
       "Default": ""
     },
+    "AvailabilityZones": {
+      "Description" : "(Optional) If passed, only launch nodes in these AZs (e.g., 'us-east-1a,us-east-1b'). Note: these must match the passed Subnets.",
+      "Type" : "CommaDelimitedList",
+      "Default" : ""
+    },
     "AdminSecurityGroup" : {
       "Description" : "Existing security group that should be granted administrative access to Jenkins (e.g., 'sg-123456')",
       "Type": "String",
       "Default": ""
     },
     "SSLCert": {
-      "Description" : "SSL certificate for service",
+      "Description" : "(Optional) SSL certificate for service",
       "Type": "String",
-      "Default": "arn:aws:iam::109201950569:server-certificate/mergermarket_dot_com_wildcard"
+      "Default": ""
     }
+  },
+
+  "Conditions" : {
+    "UseAllAvailabilityZones" : {"Fn::Equals" : [{ "Fn::Join" : ["", {"Ref" : "AvailabilityZones"} ]}, ""]},
+    "SSLAvailable" : { "Fn::Not" : [{ "Fn::Equals" : [{ "Ref" : "SSLCert"}, ""]}]},
+    "SSLNotAvailable" : { "Fn::Equals" : [{ "Ref" : "SSLCert"}, "" ] },
+    "CreateDnsEntry" : {"Fn::And": [
+      {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "DnsPrefix"}, ""]}]},
+      {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "DnsZone"}, ""]}]}
+    ]}
   },
 
   "Mappings" : {
@@ -323,17 +348,13 @@
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
         "GroupDescription" : "Jenkins LBs",
-        "VpcId" : { "Ref" : "VpcId" },
-	"SecurityGroupIngress" :
-	  [ 
-		{ "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp": "0.0.0.0/0" },
-		{ "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp": "0.0.0.0/0" }
-	  ]
+        "VpcId" : { "Ref" : "VpcId" }
       }
     },
 
     "ServerSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
+      "Condition": "SSLAvailable",
       "Properties" : {
         "GroupDescription" : "Jenkins servers",
         "VpcId" : { "Ref" : "VpcId" },
@@ -343,8 +364,20 @@
       }
     },
 
+    "ServerSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Condition": "SSLNotAvailable",
+      "Properties" : {
+        "GroupDescription" : "Jenkins servers",
+        "VpcId" : { "Ref" : "VpcId" },
+        "SecurityGroupIngress" :
+          [ { "IpProtocol" : "tcp", "FromPort" : "8080", "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "LbSecurityGroup"} }]
+      }
+    },
+
     "ElasticLoadBalancer" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition" : "SSLAvailable",
       "Properties" : {
         "SecurityGroups": [{ "Ref": "LbSecurityGroup" }, { "Ref": "AdminSecurityGroup" }],
         "Subnets": { "Ref": "Subnets" },
@@ -360,7 +393,7 @@
 	  "SSLCertificateId" : { "Ref": "SSLCert" }
         } ],
         "HealthCheck" : {
-          "Target" : "TCP:8080/",
+          "Target" : "TCP:8080",
           "HealthyThreshold" : "2",
           "UnhealthyThreshold" : "3",
           "Interval" : "10",
@@ -369,8 +402,55 @@
       }
     },
 
+    "ElasticLoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition" : "SSLNotAvailable",
+      "Properties" : {
+        "SecurityGroups": [{ "Ref": "LbSecurityGroup" }, { "Ref": "AdminSecurityGroup" }],
+        "Subnets": { "Ref": "Subnets" },
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : "8080",
+          "Protocol" : "HTTP"
+        } ],
+        "HealthCheck" : {
+          "Target" : "TCP:8080",
+          "HealthyThreshold" : "2",
+          "UnhealthyThreshold" : "3",
+          "Interval" : "10",
+          "Timeout" : "5"
+        }
+      }
+    },
+
+    "DnsRecord" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "Condition": "CreateDnsEntry",
+      "Properties" : {
+        "HostedZoneName" : { "Fn::Join" : [ "", [{"Ref" : "DnsZone"}, "." ]]},
+        "Comment" : "Docker Registry",
+        "Name" : { "Fn::Join" : [ "", [{"Ref" : "DnsPrefix"}, ".", {"Ref" : "DnsZone"}, "."]]},
+        "Type" : "A",
+	"AliasTarget" : {
+		"HostedZoneId" : { "Fn::GetAtt" : [ "ElasticLoadBalancer", "CanonicalHostedZoneNameID" ]},
+		"DNSName" : { "Fn::GetAtt" : [ "ElasticLoadBalancer", "CanonicalHostedZoneName" ] }
+	}
+      }
+    },
+
     "WaitHandle" : {
       "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    }
+  },
+
+  "Outputs" : {
+    "DnsAddress" : {
+      "Description" : "Jenkins Server",
+      "Value" :  { "Fn::If" : [
+        "CreateDnsEntry",
+        { "Ref" : "DnsRecord" },
+        { "Fn::GetAtt" : [ "ElasticLoadBalancer", "DNSName" ]}
+      ]}
     }
   }
 
