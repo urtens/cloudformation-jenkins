@@ -169,11 +169,11 @@
                 "group"   : "root"
               },
 
-              "/usr/local/bin/jenkins-restore" : {
+              "/usr/local/bin/app-restore" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash -e",
                   "",
-                  "USAGE=\"Usage: $0 S3_TARGET JENKINS_HOME\\n",
+                  "USAGE=\"Usage: $0 S3_TARGET SERVICE_HOME\\n",
                   "\\n",
                   "Example:\\n",
                   "$0 s3://mybucket/jenkins/jenkins-201405011901.tar.gz /var/lib/jenkins\\n",
@@ -182,7 +182,7 @@
                   "$0 s3://mybucket/jenkins/ /var/lib/jenkins\"",
                   "",
                   "S3_TARGET=$1",
-                  "JENKINS_HOME=$2",
+                  "SERVICE_HOME=$2",
                   "if [[ -z \"`echo $S3_TARGET|grep '^s3://'`\" ]]; then",
                   "    echo -e $USAGE",
                   "    exit 1",
@@ -195,19 +195,19 @@
                   "LOCAL_BACKUP=/tmp/`basename $S3_TARGET`",
                   "aws s3 cp $S3_TARGET $LOCAL_BACKUP",
                   "",
-                  "if [[ -d \"$JENKINS_HOME\" ]]; then",
-                  "    read -p \"Delete existing $JENKINS_HOME? (y/n) \" -n 1 -r",
+                  "if [[ -d \"$SERVICE_HOME\" ]]; then",
+                  "    read -p \"Delete existing $SERVICE_HOME? (y/n) \" -n 1 -r",
                   "    echo",
                   "    if [[ $REPLY =~ ^[Yy]$ ]]; then",
-                  "        rm -rf $JENKINS_HOME",
+                  "        rm -rf $SERVICE_HOME",
                   "    else",
                   "        echo \"Bailing out\"",
                   "        exit 1",
                   "    fi",
                   "fi",
                   "",
-                  "mkdir -p $JENKINS_HOME",
-                  "tar zxf $LOCAL_BACKUP -C $JENKINS_HOME",
+                  "mkdir -p $SERVICE_HOME",
+                  "tar zxf $LOCAL_BACKUP -C $SERVICE_HOME",
                   "rm -f $LOCAL_BACKUP"
                 ]]},
                 "mode"    : "000755",
@@ -215,25 +215,25 @@
                 "group"   : "root"
               },
 
-              "/usr/local/bin/jenkins-backup" : {
+              "/usr/local/bin/app-backup" : {
                 "content" : { "Fn::Join" : ["\n", [
                   "#!/bin/bash -e",
                   "",
-                  "USAGE=\"Usage: $0 JENKINS_HOME S3_TARGET\\n",
+                  "USAGE=\"Usage: $0 SERVICE_HOME S3_TARGET\\n",
                   "\\n",
                   "Examples:\\n",
                   "$0 /var/lib/jenkins s3://mybucket/jenkins/jenkins-201405011901.tar.gz\"",
                   "",
-                  "JENKINS_HOME=$1",
+                  "SERVICE_HOME=$1",
                   "S3_TARGET=$2",
-                  "if [[ -z \"`echo $S3_TARGET|grep '^s3://'`\" || ! -d \"$JENKINS_HOME\" ]]; then",
+                  "if [[ -z \"`echo $S3_TARGET|grep '^s3://'`\" || ! -d \"$SERVICE_HOME\" ]]; then",
                   "    echo -e $USAGE",
                   "    exit 1",
                   "fi",
                   "",
                   "LOCAL_BACKUP=/tmp/`basename $S3_TARGET`",
                   "",
-                  "tar -C $JENKINS_HOME -zcf $LOCAL_BACKUP .\\",
+                  "tar -C $SERVICE_HOME -zcf $LOCAL_BACKUP .\\",
                   "    --exclude \"config-history/\" \\",
                   "    --exclude \"config-history/*\" \\",
                   "    --exclude \"jobs/*/workspace*\" \\",
@@ -255,7 +255,7 @@
                 "content" : { "Fn::Join" : ["\n", [
                   "AWS_CONFIG_FILE=/etc/aws.conf",
                   "PATH=/bin:/usr/bin::/usr/local/bin",
-                  "59 0 * * root jenkins-backup /var/lib/jenkins s3://{{s3_bucket}}/{{s3_prefix}}jenkins-`date +\\%Y\\%m\\%d\\%H\\%M.tar.gz` >> /var/log/jenkins-backup.log 2>&1\n"
+                  "59 0 * * root app-backup /var/lib/jenkins s3://{{s3_bucket}}/{{s3_prefix}}jenkins-`date +\\%Y\\%m\\%d\\%H\\%M.tar.gz` >> /var/log/jenkins-backup.log 2>&1\n"
                 ]]},
                 "context" : {
                   "s3_bucket"   : { "Ref" : "S3Bucket"},
@@ -298,7 +298,7 @@
 
           "# Attempt to restore from backup\n",
           "export AWS_CONFIG_FILE=/etc/aws.conf\n",
-          "jenkins-restore s3://",{ "Ref": "S3Bucket" },"/",{ "Ref": "S3Prefix" }," /var/lib/jenkins || true # ignore errors\n",
+          "app-restore s3://",{ "Ref": "S3Bucket" },"/",{ "Ref": "S3Prefix" }," /var/lib/jenkins || true # ignore errors\n",
 
 	  "#Restart nginx\n",
 	  "service nginx restart\n",

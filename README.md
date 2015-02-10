@@ -1,8 +1,5 @@
 CloudFormation template for a [Jenkins](https://jenkins-ci.org/) server with automatic backup and recovery.
 
-Prerequisites:
-* Route 53 hosted zone for the desired DNS address (e.g., `mycompany.com` for `jenkins.mycompany.com`)
-
 ## Overview
 
 This template bootstraps a Jenkins server.
