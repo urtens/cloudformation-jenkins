@@ -11,6 +11,11 @@
       "AllowedValues" : [ "m3.large", "t1.micro", "t2.micro","t2.small","t2.medium","t2.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","m3.xlarge","m3.2xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
+    "Environment": {
+      "Description" : "The environment this runs against (eg. live, development)",
+      "Type" : "String",
+      "Default": "live"
+    },
     "KeyName" : {
       "Description" : "Name of an existing EC2 keypair to enable SSH access to the instances",
       "Type" : "String",
@@ -62,7 +67,7 @@
       "Default": ""
     },
     "SSLCert": {
-      "Description" : "(Optional) SSL certificate for service",
+      "Description" : "SSL certificate for service",
       "Type": "String",
       "Default": ""
     }
@@ -70,7 +75,7 @@
 
   "Conditions" : {
     "UseAllAvailabilityZones" : {"Fn::Equals" : [{ "Fn::Join" : ["", {"Ref" : "AvailabilityZones"} ]}, ""]},
-    "SSLAvailable" : { "Fn::Not" : [{ "Fn::Equals" : [{ "Ref" : "SSLCert"}, ""]}]},
+    "SSLAvailable" : {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "SSLCert"}, ""]}]},
     "SSLNotAvailable" : { "Fn::Equals" : [{ "Ref" : "SSLCert"}, "" ] },
     "CreateDnsEntry" : {"Fn::And": [
       {"Fn::Not": [{"Fn::Equals" : [{"Ref" : "DnsPrefix"}, ""]}]},
@@ -150,7 +155,13 @@
         "MaxSize" : "1",
         "DesiredCapacity" : "1",
         "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ],
-        "VPCZoneIdentifier" : { "Ref" : "Subnets" }
+        "VPCZoneIdentifier" : { "Ref" : "Subnets" },
+	"Tags" : [
+		{"Key": "Name", "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": "true"},
+		{"Key": "Component", "Value": "Jenkins", "PropagateAtLaunch": "true"},
+		{"Key": "Environment", "Value": { "Ref": "Environment" }, "PropagateAtLaunch": "true"},
+		{"Key": "Project", "Value": "Platform", "PropagateAtLaunch": "true" }
+	]
       }
     },
 
@@ -280,7 +291,7 @@
                 "content" : { "Fn::Join" : ["\n", [
                   "AWS_CONFIG_FILE=/etc/aws.conf",
                   "PATH=/bin:/usr/bin::/usr/local/bin",
-                  "59 0 * * root app-backup /var/lib/jenkins s3://{{s3_bucket}}/{{s3_prefix}}jenkins-`date +\\%Y\\%m\\%d\\%H\\%M.tar.gz` >> /var/log/jenkins-backup.log 2>&1\n"
+                  "59 0 * * * root app-backup /var/lib/jenkins s3://{{s3_bucket}}/{{s3_prefix}}jenkins-`date +\\%Y\\%m\\%d\\%H\\%M.tar.gz` >> /var/log/jenkins-backup.log 2>&1\n"
                 ]]},
                 "context" : {
                   "s3_bucket"   : { "Ref" : "S3Bucket"},
@@ -354,7 +365,6 @@
 
     "ServerSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
-      "Condition": "SSLAvailable",
       "Properties" : {
         "GroupDescription" : "Jenkins servers",
         "VpcId" : { "Ref" : "VpcId" },
@@ -364,20 +374,8 @@
       }
     },
 
-    "ServerSecurityGroup" : {
-      "Type" : "AWS::EC2::SecurityGroup",
-      "Condition": "SSLNotAvailable",
-      "Properties" : {
-        "GroupDescription" : "Jenkins servers",
-        "VpcId" : { "Ref" : "VpcId" },
-        "SecurityGroupIngress" :
-          [ { "IpProtocol" : "tcp", "FromPort" : "8080", "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "LbSecurityGroup"} }]
-      }
-    },
-
     "ElasticLoadBalancer" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Condition" : "SSLAvailable",
       "Properties" : {
         "SecurityGroups": [{ "Ref": "LbSecurityGroup" }, { "Ref": "AdminSecurityGroup" }],
         "Subnets": { "Ref": "Subnets" },
@@ -391,27 +389,6 @@
 	  "InstancePort": "8080",
           "Protocol": "HTTPS",
 	  "SSLCertificateId" : { "Ref": "SSLCert" }
-        } ],
-        "HealthCheck" : {
-          "Target" : "TCP:8080",
-          "HealthyThreshold" : "2",
-          "UnhealthyThreshold" : "3",
-          "Interval" : "10",
-          "Timeout" : "5"
-        }
-      }
-    },
-
-    "ElasticLoadBalancer" : {
-      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Condition" : "SSLNotAvailable",
-      "Properties" : {
-        "SecurityGroups": [{ "Ref": "LbSecurityGroup" }, { "Ref": "AdminSecurityGroup" }],
-        "Subnets": { "Ref": "Subnets" },
-        "Listeners" : [ {
-          "LoadBalancerPort" : "80",
-          "InstancePort" : "8080",
-          "Protocol" : "HTTP"
         } ],
         "HealthCheck" : {
           "Target" : "TCP:8080",
