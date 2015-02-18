@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-  "Description" : "Launches a jenkins slave node.",
+  "Description" : "Launches Jenkins slaves on demand.",
 
   "Parameters" : {
     "InstanceType" : {
@@ -113,7 +113,33 @@
         }]
       }
     },
-
+    "ScaleUpPolicy" : {
+    "Type" : "AWS::AutoScaling::ScalingPolicy",
+    "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "ServerGroup" },
+        "Cooldown" : "1",
+        "ScalingAdjustment" : "1"
+    }
+    },
+    "CPUAlarmHigh": {
+    "Type": "AWS::CloudWatch::Alarm",
+    "Properties": {
+        "EvaluationPeriods": "1",
+        "Statistic": "Average",
+        "Threshold": "10",
+        "AlarmDescription": "Alarm if CPU too high or metric disappears indicating instance is down",
+        "Period": "60",
+        "AlarmActions": [ { "Ref": "ScaleUpPolicy" } ],
+        "Namespace": "AWS/EC2",
+        "Dimensions": [ {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "ServerGroup" }
+        } ],
+        "ComparisonOperator": "GreaterThanThreshold",
+        "MetricName": "CPUUtilization"
+    }
+    },    
     "HostKeys" : {
       "Type" : "AWS::IAM::AccessKey",
       "Properties" : {
@@ -125,9 +151,9 @@
       "Properties" : {
         "AvailabilityZones" : { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
         "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
-        "MinSize" : "1",
-        "MaxSize" : "1",
-        "DesiredCapacity" : "1",
+        "MinSize" : "2",
+        "MaxSize" : "6",
+        "DesiredCapacity" : "2",
         "VPCZoneIdentifier" : { "Ref" : "Subnets" },
 	"Tags" : [
 		{"Key": "Name", "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": "true"},
@@ -144,6 +170,10 @@
         "AWS::CloudFormation::Init" : {
           "config": {
             "packages" : {
+              "yum" : { 
+		        "git": [],
+                "unzip": []
+              }
             },
             "files" : {
               "/etc/aws.conf" : {
