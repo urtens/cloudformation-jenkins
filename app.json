@@ -343,6 +343,7 @@
           "docker pull ", { "Ref": "DockerImage" }, "\n",
           "runit-service create jenkins docker run",
           "   -p 8080:8080",
+          "   -p 50000:50000",
           "   -v /var/lib/jenkins:/jenkins",
           "   ", { "Ref": "DockerImage" }, "|| error_exit 'Failed to launch Docker container'\n",
           "runit-service enable jenkins\n",
