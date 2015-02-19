@@ -151,9 +151,9 @@
       "Properties" : {
         "AvailabilityZones" : { "Fn::GetAZs" : { "Ref" : "AWS::Region" } },
         "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
-        "MinSize" : "2",
-        "MaxSize" : "6",
-        "DesiredCapacity" : "2",
+        "MinSize" : "5",
+        "MaxSize" : "5",
+        "DesiredCapacity" : "5",
         "VPCZoneIdentifier" : { "Ref" : "Subnets" },
 	"Tags" : [
 		{"Key": "Name", "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": "true"},
@@ -196,7 +196,7 @@
       },
       "Properties" : {
         "KeyName" : { "Ref" : "KeyName" },
-        "ImageId" : "ami-c3dc48b4",
+        "ImageId" : "ami-2f831758",
         "SecurityGroups" : [ { "Ref" : "ServerSecurityGroup" }, { "Ref": "AdminSecurityGroup" } ],
         "AssociatePublicIpAddress": "true",
         "InstanceType" : { "Ref" : "InstanceType" },
