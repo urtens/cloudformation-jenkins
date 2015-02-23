@@ -219,7 +219,8 @@
           
           "# Download swarm java utility\n",
           "wget http://maven.jenkins-ci.org/content/repositories/releases/org/jenkins-ci/plugins/swarm-client/", {"Ref": "SwarmPluginVersion"}, "/swarm-client-", {"Ref": "SwarmPluginVersion"},"-jar-with-dependencies.jar -O /usr/local/bin/swarm-plugin.jar", "\n",
-          "java -jar /usr/local/bin/swarm-plugin.jar -master " , {"Ref": "JenkinsMaster"}, " -username ", {"Ref": "JenkinsUser"} , " -password ", {"Ref": "JenkinsPassword" }, "\n",
+          "id -u jenkins &>/dev/null || useradd jenkins -G docker \n",
+          "su jenkins -c \"java -jar /usr/local/bin/swarm-plugin.jar -master " , {"Ref": "JenkinsMaster"}, " -username ", {"Ref": "JenkinsUser"} , " -password ", {"Ref": "JenkinsPassword" }, "\" \n",
 
           "# All is well, signal success\n",
           "cfn-signal -e 0 -r \"Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
