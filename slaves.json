@@ -203,18 +203,16 @@
                     "then",
                     "   echo \"Process ${PROCESS_NAME} is running\"",
                     "else",
-                    "   echo \"Porcess ${PROCESS_NAME} is not running. Terminating the instance\"",
                     "   poweroff",
                     "fi"
-                    ]],
+                    ]]},
                 "mode": "000700",
                 "owner": "root",
                 "group": "root"
-                }
               },
               "/etc/cron.d/check_process" : {
                 "content" : { "Fn::Join" : ["\n", [
-                  "59 0 * * * root root /usr/local/bin/check_process \n"
+                  "*/5 * * * * root root /usr/local/bin/check_process \n"
                 ]]},
                 "context" : {
                 },
