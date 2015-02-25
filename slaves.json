@@ -189,6 +189,37 @@
                 "mode"    : "000700",
                 "owner"   : "root",
                 "group"   : "root"
+              },
+              "/usr/local/bin/check_process": {
+                "content": { "Fn::Join" : ["\n", [
+                    "#!/bin/bash",
+
+                    "PROCESS_NAME='swarm-plugin.jar'",
+
+                    "ps -u -U jenkins | grep -q ${PROCESS_NAME}",
+                    "RUNNING=$?",
+                    "if [ $RUNNING -eq 0 ];",
+                    "then",
+                    "   echo \"Process ${PROCESS_NAME} is running\"",
+                    "else",
+                    "   echo \"Porcess ${PROCESS_NAME} is not running. Terminating the instance\"",
+                    "   poweroff",
+                    "fi"
+                    ]],
+                "mode": "000700",
+                "owner": "root",
+                "group": "root"
+                }
+              },
+              "/etc/cron.d/check_process" : {
+                "content" : { "Fn::Join" : ["\n", [
+                  "59 0 * * * root root /usr/local/bin/check_process \n"
+                ]]},
+                "context" : {
+                },
+                "mode"    : "000700",
+                "owner"   : "root",
+                "group"   : "root"
               }
             }
           }
