@@ -39,6 +39,7 @@
     "JenkinsPassword" : {
       "Description" : "Jenkins password",
       "Type" : "String",
+      "NoEcho": "true",
       "Default": ""
     },
     "Subnets" : {
