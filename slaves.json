@@ -203,7 +203,7 @@
                     "then",
                     "   echo \"Process ${PROCESS_NAME} is running\"",
                     "else",
-                    "   poweroff",
+                    "   /sbin/poweroff",
                     "fi"
                     ]]},
                 "mode": "000700",
