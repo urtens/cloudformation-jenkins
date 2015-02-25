@@ -212,7 +212,7 @@
               },
               "/etc/cron.d/check_process" : {
                 "content" : { "Fn::Join" : ["\n", [
-                  "*/1 * * * * root /usr/local/bin/check_process \n"
+                  "*/5 * * * * root /usr/local/bin/check_process \n"
                 ]]},
                 "context" : {
                 },
