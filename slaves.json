@@ -196,7 +196,7 @@
       },
       "Properties" : {
         "KeyName" : { "Ref" : "KeyName" },
-        "ImageId" : "ami-756df902",
+        "ImageId" : "ami-017ceb76",
         "SecurityGroups" : [ { "Ref" : "ServerSecurityGroup" }, { "Ref": "AdminSecurityGroup" } ],
         "AssociatePublicIpAddress": "true",
         "InstanceType" : { "Ref" : "InstanceType" },
