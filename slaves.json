@@ -29,7 +29,7 @@
     "JenkinsMaster" : {
       "Description" : "URL of the Jenkins Master",
       "Type" : "String",
-      "Default": "http://10.169.2.126:8080"
+      "Default": "http://jenkins-int.mergermarket.it"
     },
     "JenkinsUser" : {
       "Description" : "Jenkins user",
@@ -52,15 +52,15 @@
       "Type" : "String",
       "Default": ""
     },
+    "PrivateCIDR" : {
+      "Description" : "Private CIDR",
+      "Type" : "String",
+      "Default": "10.0.0.0/8"
+    },
     "AvailabilityZones": {
       "Description" : "(Optional) If passed, only launch nodes in these AZs (e.g., 'us-east-1a,us-east-1b'). Note: these must match the passed Subnets.",
       "Type" : "CommaDelimitedList",
       "Default" : ""
-    },
-    "AdminSecurityGroup" : {
-      "Description" : "Existing security group that should be granted administrative access to Jenkins (e.g., 'sg-123456')",
-      "Type": "String",
-      "Default": ""
     }
   },
 
@@ -173,7 +173,8 @@
             "packages" : {
               "yum" : { 
 		        "git": [],
-                "unzip": []
+                "unzip": [],
+                "rubygem-bundler": []
               }
             },
             "files" : {
@@ -226,8 +227,8 @@
       },
       "Properties" : {
         "KeyName" : { "Ref" : "KeyName" },
-        "ImageId" : "ami-017ceb76",
-        "SecurityGroups" : [ { "Ref" : "ServerSecurityGroup" }, { "Ref": "AdminSecurityGroup" } ],
+        "ImageId" : "ami-21fb6b56",
+        "SecurityGroups" : [ { "Ref" : "ServerSecurityGroup" } ],
         "AssociatePublicIpAddress": "true",
         "InstanceType" : { "Ref" : "InstanceType" },
         "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
@@ -249,7 +250,7 @@
           
           "# Download swarm java utility\n",
           "wget http://maven.jenkins-ci.org/content/repositories/releases/org/jenkins-ci/plugins/swarm-client/", {"Ref": "SwarmPluginVersion"}, "/swarm-client-", {"Ref": "SwarmPluginVersion"},"-jar-with-dependencies.jar -O /usr/local/bin/swarm-plugin.jar", "\n",
-          "id -u jenkins &>/dev/null || useradd jenkins -G docker \n",
+          "id -u jenkins &>/dev/null || useradd jenkins -G docker,rvm \n",
           "mkdir -p /var/lib/jenkins \n",
           "chown -Rf jenkins:jenkins /var/lib/jenkins \n",
           "su jenkins -c \"java -jar /usr/local/bin/swarm-plugin.jar -fsroot /var/lib/jenkins -master " , {"Ref": "JenkinsMaster"}, " -username ", {"Ref": "JenkinsUser"} , " -password ", {"Ref": "JenkinsPassword" }, "\" \n",
@@ -268,7 +269,7 @@
         "GroupDescription" : "Jenkins slaves",
         "VpcId" : { "Ref" : "VpcId" },
         "SecurityGroupIngress" :
-          [ { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "SourceSecurityGroupId" : "sg-29731a4c" }]
+          [ { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref": "PrivateCIDR" } }]
       }
     },
 
