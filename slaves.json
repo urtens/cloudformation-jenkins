@@ -250,6 +250,7 @@
           
           "# Download swarm java utility\n",
           "wget http://maven.jenkins-ci.org/content/repositories/releases/org/jenkins-ci/plugins/swarm-client/", {"Ref": "SwarmPluginVersion"}, "/swarm-client-", {"Ref": "SwarmPluginVersion"},"-jar-with-dependencies.jar -O /usr/local/bin/swarm-plugin.jar", "\n",
+	  "groupadd rvm \n",
           "id -u jenkins &>/dev/null || useradd jenkins -G docker,rvm \n",
           "mkdir -p /var/lib/jenkins \n",
           "chown -Rf jenkins:jenkins /var/lib/jenkins \n",
