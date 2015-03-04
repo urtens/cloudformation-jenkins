@@ -173,6 +173,7 @@
             "packages" : {
               "yum" : { 
 		        "git": [],
+                "npm": [],
                 "unzip": [],
                 "rubygem-bundler": []
               }
