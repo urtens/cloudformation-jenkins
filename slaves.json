@@ -254,7 +254,7 @@
           "usermod jenkins -G docker,rvm \n", 
           "mkdir -p /var/lib/jenkins \n",
           "chown -Rf jenkins:jenkins /var/lib/jenkins \n",
-          "su jenkins -c \"java -jar /usr/local/bin/swarm-plugin.jar -fsroot /var/lib/jenkins -master " , {"Ref": "JenkinsMaster"}, " -username ", {"Ref": "JenkinsUser"} , " -password ", {"Ref": "JenkinsPassword" }, "\" \n",
+          "su - jenkins -c \"java -jar /usr/local/bin/swarm-plugin.jar -fsroot /var/lib/jenkins -master " , {"Ref": "JenkinsMaster"}, " -username ", {"Ref": "JenkinsUser"} , " -password ", {"Ref": "JenkinsPassword" }, "\" \n",
 
           "# All is well, signal success\n",
           "cfn-signal -e 0 -r \"Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n",
